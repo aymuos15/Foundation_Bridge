@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import LambdaLR
+
 from opacus import PrivacyEngine
 from opacus.validators import ModuleValidator
 from opacus.utils.batch_memory_manager import BatchMemoryManager

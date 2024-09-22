@@ -63,48 +63,59 @@ class MedMNISTDataset_Rotated(Dataset):
 
         return rotated_image, rotation_label
     
-# # To use Multiple Dataset Potentially
-# def combine_datasets(*datasets):
-#     """
-#     Combine multiple datasets, adjusting labels to ensure uniqueness across all datasets.
+# To use Multiple Dataset Potentially
+def combine_datasets(data_paths):
+    """
+    Combine multiple datasets from a list of file paths, adjusting labels to ensure uniqueness across all datasets.
+    Handles both training and test data.
     
-#     Args:
-#     *datasets: Variable number of tuples, each containing (images, labels) for a dataset.
+    Args:
+    data_paths: List of strings, each containing the file path to a .npz dataset.
     
-#     Returns:
-#     combined_images: Numpy array of combined images from all datasets.
-#     combined_labels: Numpy array of combined and adjusted labels from all datasets.
-#     """
-#     combined_images = []
-#     combined_labels = []
-#     label_offset = 0
+    Returns:
+    combined_train_images: Numpy array of combined training images from all datasets.
+    combined_train_labels: Numpy array of combined and adjusted training labels from all datasets.
+    combined_test_images: Numpy array of combined test images from all datasets.
+    combined_test_labels: Numpy array of combined and adjusted test labels from all datasets.
+    """
 
-#     for i, (images, labels) in enumerate(datasets):
-#         combined_images.append(images)
+    #! Do not mix one channel and multi channel datasets. Example breastmnist and retinamnist
+
+    combined_train_images = []
+    combined_train_labels = []
+    combined_test_images = []
+    combined_test_labels = []
+    label_offset = 0
+
+    for path in data_paths:
+        # Load the dataset
+        data = np.load(path)
         
-#         # Adjust labels for uniqueness
-#         adjusted_labels = labels + label_offset
-#         combined_labels.append(adjusted_labels)
+        # Extract train images and labels
+        train_images = data['train_images']
+        train_labels = data['train_labels']
         
-#         # Update label offset for the next dataset
-#         label_offset += len(np.unique(labels))
+        # Extract test images and labels
+        test_images = data['test_images']
+        test_labels = data['test_labels']
+
+        combined_train_images.append(train_images)
+        combined_test_images.append(test_images)
+
+        # Adjust labels for uniqueness
+        adjusted_train_labels = train_labels + label_offset
+        adjusted_test_labels = test_labels + label_offset
         
-#         # Print information about this dataset
-#         print(f'Dataset {i+1} labels:', np.unique(adjusted_labels))
-#         print(f'Dataset {i+1} shape:', images.shape)
+        combined_train_labels.append(adjusted_train_labels)
+        combined_test_labels.append(adjusted_test_labels)
 
-#     # Combine all images and labels
-#     combined_images = np.concatenate(combined_images, axis=0)
-#     combined_labels = np.concatenate(combined_labels, axis=0)
+        # Update label offset for the next dataset
+        label_offset += len(np.unique(train_labels))
 
-#     print('\nCombined dataset:')
-#     print('Labels:', np.unique(combined_labels))
-#     print('Shape:', combined_images.shape)
+    # Combine all images and labels
+    combined_train_images = np.concatenate(combined_train_images, axis=0)
+    combined_train_labels = np.concatenate(combined_train_labels, axis=0)
+    combined_test_images = np.concatenate(combined_test_images, axis=0)
+    combined_test_labels = np.concatenate(combined_test_labels, axis=0)
 
-#     return combined_images, combined_labels
-
-# a = np.load('/home/soumya/.medmnist/retinamnist.npz')
-# c = np.load('/home/soumya/.medmnist/bloodmnist.npz')
-
-# combined_images, combined_labels = combine_datasets((a['train_images'], a['train_labels']), (c['train_images'], c['train_labels']))
-# test_combined_images, test_combined_labels = combine_datasets((a['test_images'], a['test_labels']), (c['test_images'], c['test_labels']))
+    return combined_train_images, combined_train_labels, combined_test_images, combined_test_labels

@@ -1,9 +1,0 @@
-Experiment,Accuracy (Mean),Accuracy (Std)
-total,48.4375,4.6875
-pretrain,50.7812,0.7812
-finetune,51.1719,0.3906
-pretrain_rotated,32.8125,11.7188
-private_total,48.4375,1.5625
-private_pretrain,33.2031,14.4531
-private_finetune,50.7812,0.7812
-private_pretrain_rotated,34.3750,14.8438

@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 
 from runners import train_test, train_test_private
 from dataset import MedMNISTDataset, MedMNISTDataset_Rotated
+from dataset import combine_datasets
 from model import Net_28
 
 from config import CONFIG
@@ -17,18 +18,16 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def load_and_prepare_data():
-    data = np.load(CONFIG['data_path'])
+
+    datasets = CONFIG['datasets']
 
     if CONFIG['Split_Style'] == 'MedMNIST':
-        train_images, train_labels = data['train_images'], data['train_labels']
-        test_images, test_labels = data['test_images'], data['test_labels']
+        train_images, train_labels, test_images, test_labels = combine_datasets(datasets)
     else:
-        all_images = np.concatenate((data['train_images'], data['test_images']), axis=0)
-        all_labels = np.concatenate((data['train_labels'], data['test_labels']), axis=0)
-        
-        train_images, test_images, train_labels, test_labels = train_test_split(
-            all_images, all_labels, test_size=CONFIG['split_ratio'], random_state=42
-        )
+        train_images, train_labels, test_images, test_labels = combine_datasets(datasets)
+        all_images = np.concatenate([train_images, test_images])
+        all_labels = np.concatenate([train_labels, test_labels])
+        train_images, train_labels, test_images, test_labels = train_test_split(all_images, all_labels, test_size=CONFIG['split_ratio'], random_state=42)
 
     split = int(len(train_images) * CONFIG['split_ratio'])
     pretrain_images, finetune_images = train_images[:split], train_images[split:]
@@ -58,14 +57,17 @@ def load_model(model, path):
     state_dict = torch.load(path)
     model_dict = model.state_dict()
     
-    new_state_dict = {k.replace('_module.', ''): v for k, v in state_dict.items() if k.replace('_module.', '') in model_dict}
+    # Filter out final layer weights
+    new_state_dict = {k.replace('_module.', ''): v for k, v in state_dict.items() 
+                      if k.replace('_module.', '') in model_dict and 'fc.4' not in k}
     
     model_dict.update(new_state_dict)
-    model.load_state_dict(model_dict)
+    model.load_state_dict(model_dict, strict=False)
     return model
 
 def run_experiment(name, train_loader, test_loader, is_private=False):
-    model = Net_28(CONFIG['num_channels'], CONFIG['num_classes']).to(CONFIG['device'])
+    num_classes = len(np.unique(train_loader.dataset.labels))
+    model = Net_28(CONFIG['num_channels'], num_classes).to(CONFIG['device'])
     train_func = train_test_private if is_private else train_test
     acc, trained_model = train_func(model, train_loader, test_loader, task=CONFIG['task'], epochs=CONFIG['num_epochs'])
     save_model(trained_model, f"weights/{name}.pth", is_private)
@@ -129,9 +131,14 @@ def run_pretrain_finetune_experiments():
 
         for name, pretrain_weights, is_private in experiments:
             print(f"Pretrain: {pretrain_weights}, Finetune: {name[17:]}, Private: {is_private}")
-            model = Net_28(CONFIG['num_channels'], CONFIG['num_classes']).to(CONFIG['device'])
+            num_classes = len(np.unique(loaders['finetune'].dataset.labels))
+            model = Net_28(CONFIG['num_channels'], num_classes).to(CONFIG['device'])
             model = load_model(model, f"weights/{pretrain_weights}")
             
+            # Reinitialize the final layer
+            in_features = model.fc[-1].in_features
+            model.fc[-1] = torch.nn.Linear(in_features, num_classes).to(CONFIG['device'])
+
             train_func = train_test_private if is_private else train_test
             acc, trained_model = train_func(model, loaders['finetune'], loaders['test'], task=CONFIG['task'], epochs=CONFIG['num_epochs'])
             
