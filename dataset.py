@@ -63,23 +63,20 @@ class MedMNISTDataset_Rotated(Dataset):
 
         return rotated_image, rotation_label
     
-# To use Multiple Dataset Potentially
 def combine_datasets(data_paths):
     """
     Combine multiple datasets from a list of file paths, adjusting labels to ensure uniqueness across all datasets.
-    Handles both training and test data.
+    Handles both training and test data, and converts 1-channel images to 3-channel format.
     
     Args:
     data_paths: List of strings, each containing the file path to a .npz dataset.
     
     Returns:
-    combined_train_images: Numpy array of combined training images from all datasets.
+    combined_train_images: Numpy array of combined training images from all datasets (all 3-channel).
     combined_train_labels: Numpy array of combined and adjusted training labels from all datasets.
-    combined_test_images: Numpy array of combined test images from all datasets.
+    combined_test_images: Numpy array of combined test images from all datasets (all 3-channel).
     combined_test_labels: Numpy array of combined and adjusted test labels from all datasets.
     """
-
-    #! Do not mix one channel and multi channel datasets. Example breastmnist and retinamnist
 
     combined_train_images = []
     combined_train_labels = []
@@ -98,6 +95,12 @@ def combine_datasets(data_paths):
         # Extract test images and labels
         test_images = data['test_images']
         test_labels = data['test_labels']
+
+        # Convert 1-channel images to 3-channel if necessary
+        if train_images.ndim == 3:  # 1-channel images
+            train_images = np.repeat(train_images[..., np.newaxis], 3, axis=-1)
+        if test_images.ndim == 3:  # 1-channel images
+            test_images = np.repeat(test_images[..., np.newaxis], 3, axis=-1)
 
         combined_train_images.append(train_images)
         combined_test_images.append(test_images)

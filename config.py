@@ -7,11 +7,11 @@ def generate_data_field(datasets):
 
 CONFIG = {
     "batch_size": 32,
-    "num_channels": 1,
+    "num_channels": 3,
     "num_epochs": 2,
     "task": "multi-class",
 
-    "datasets": [f"{data_path}pneumoniamnist.npz", f"{data_path}breastmnist.npz"],
+    "datasets": [f"{data_path}pneumoniamnist.npz", f"{data_path}breastmnist.npz", f"{data_path}retinamnist.npz"],
 
     "split_ratio": 0.1,
     "Top-K": 2,

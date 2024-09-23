@@ -1,0 +1,2 @@
+1. Potentially Make a List of Pre-Text Tasks (So ablation of pretext tasks)
+2. What ablation can we do for the combination of datasets? (In Domain and Out of Domain?)
